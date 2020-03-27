@@ -35,10 +35,10 @@ stmerge <- merge(viral_table, seqtable, all.x = TRUE)
 # Sum per taxon counts
 merged_table <- stmerge %>%
   select(-id) %>%
-  unite("lineage", c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"), sep = "_") %>%
-  group_by(lineage) %>%
+  unite("lineage", c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus"), sep = "_", remove = FALSE) %>%
+  group_by(lineage, Species) %>%
   summarise_if(is.numeric, funs(sum(as.numeric(.)))) %>%
-  separate("lineage", c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"), sep = "_") %>%
+  separate("lineage", c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus"), sep = "_") %>%
   ungroup()
 
 # Remove taxon information to create final count table (called otu_table in phyloseq)
@@ -181,6 +181,6 @@ ps.aln.scaled <- ps.aln.scaled %>%
 saveRDS(ps.aln.scaled, file = "./results/aln_euk_viruses.RDS")
 
 # Write zero abundance filtered file
-ps.aln.fixed.filt <- ps.aln.fixed %>%
+ps.aln.fixed.filt <- ps.aln.scaled %>%
 	filter(Abundance > 0)
 saveRDS(ps.aln.fixed.filt, file = "./results/aln_euk_viruses_filt.RDS")

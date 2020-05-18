@@ -81,7 +81,7 @@ do
 		-t ${SLURM_CPUS_PER_TASK}
 
 	cp $OUT/"$F"_megahit_out/*.mh.contigs.fa $OUT/megahit_contigs
-	cp $OUT/"$F"_megahit_out/k99_"$F".fastg $OUT/contig_graphs
+	#cp $OUT/"$F"_megahit_out/k99_"$F".fastg $OUT/contig_graphs
 
 	# Step 3: Quantification by mapping
 	echo

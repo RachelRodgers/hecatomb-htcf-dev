@@ -1,9 +1,13 @@
 #!/bin/bash
 
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=64G
+#SBATCH -J vir_asmbly
+#SBATCH --mail-user=rachel.rodgers
+#SBATCH --mail-type=ALL
+
 # virome_assembly_htcf_modified.sbatch
-
 # Takes quality controlled reads (though contaminant_remval.sh Step 7) and performe a metagenomic assembly
-
 # Steps:
 # 0) Some stats file generation
 # 1) Digital normalization
@@ -19,12 +23,6 @@ module load megahit
 
 # Immediately exit on errors
 set -ue
-
-#SBATCH --cpus-per-task=16
-#SBATCH --mem=64G
-#SBATCH -J vir_asmbly
-#SBATCH --mail-user=rachel.rodgers
-#SBATCH --mail-type=ALL
 
 # Prep output directories
 mkdir -p ./assembly

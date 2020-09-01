@@ -30,7 +30,7 @@ BACPATH=/scratch/ref/hecatomb_databases/bac_giant/unique_species # masked bacter
 
 # Prep output directories
 mkdir -p ./clumped
-mkdir -p ./QC/step_{1..9}
+mkdir -p ./QC/step_{1..8}
 mkdir -p ./runtimes
 
 read1=$(sed -n ${SLURM_ARRAY_TASK_ID}p lookup.txt)
@@ -50,8 +50,7 @@ echo -e "S0\tS1\tS2\tS3\tS4\tS5\tS6\tS7\tS8\ts9" > ./runtimes/${sample}_contamin
 	# Step 5: PhiX Removal and vector contamination removal
 	# Step 6: Host-removal
 	# Step 7: Trim low-quality bases
-	# Step 8: Read correction, merging and extension
-	# Step 9: Remove bacterial contaminants reserving viral and aambiguous sequences
+	# Step 8: Remove bacterial contaminants reserving viral and ambiguous sequences
 
 # Step 0: Clumpify and deduplicate reads
 echo
@@ -201,6 +200,7 @@ bbmap.sh \
 	quickmatch fast \
 	ordered=t \
 	path=$HOSTPATH \
+	-Xmx48g \
 	ow=t \
 	t=${SLURM_CPUS_PER_TASK}
 
@@ -232,63 +232,56 @@ bbduk.sh \
 	ow=t \
 	t=${SLURM_CPUS_PER_TASK}
 
+
+# Split singletons and combine R1 and R2 files
+grep -A 3 '1:N:' \
+	./QC/step_7/${sample}_singletons.s7.out.fastq \
+	| sed '/^--$/d' > \
+	./QC/step_7/${sample}_singletons_R1.out.fastq
+	
+grep -A 3 '2:N:' \
+	./QC/step_7/${sample}_singletons.s7.out.fastq \
+	| sed '/^--$/d' > \
+	./QC/step_7/${sample}_singletons_R2.out.fastq
+
+cat ./QC/step_7/${sample}_R1.s7.out.fastq \
+	./QC/step_7/${sample}_singletons_R1.out.fastq > \
+	./QC/step_7/${sample}_R1.s7.combined.out.fastq
+       
+cat ./QC/step_7/${sample}_R2.s7.out.fastq \
+	./QC/step_7/${sample}_singletons_R2.out.fastq > \
+	./QC/step_7/${sample}_R2.s7.combined.out.fastq
+	
 RUNTIME_7=$(($SECONDS - $T7))
 
-# Step 8: Merge forward (R1) and reverse (R2) reads
+# Step 8: Remove bacterial contaminants reserving viral and ambiguous sequences
 echo
 echo "step 8"
 echo
 
 T8=$SECONDS
 
-bbmerge.sh \
-	in1=./QC/step_7/${sample}_R1.s7.out.fastq \
-	in2=./QC/step_7/${sample}_R2.s7.out.fastq \
-	out=./QC/step_8/${sample}_merged.fastq \
-	outu1=./QC/step_8/${sample}_R1.unmerged.fastq \
-	outu2=./QC/step_8/${sample}_R2.unmerged.fastq \
-	rem k=62 extend2=50 ecct vstrict=t \
+bbmap.sh \
+	in=./QC/step_7/${sample}_R1.s7.combined.out.fastq \
+	path=$BACPATH \
+	outm=./QC/step_8/${sample}_bacterial.fastq \
+	outu=./QC/step_8/${sample}_viral_amb.fastq \
+	semiperfectmode=t \
+	quickmatch fast \
+	refstats=./QC/step_8/${sample}_refstats.txt \
+	scafstats=./QC/step_8/${sample}_scafstats.txt \
 	ordered=t \
-	-Xmx64g \
+	-Xmx48g \
 	ow=t \
 	t=${SLURM_CPUS_PER_TASK}
-
-# Split singletons and combine R1 and R2 files
-grep -A 3 '1:N:' ./QC/step_7/${sample}_singletons.s7.out.fastq | sed '/^--$/d' > ./QC/step_7/${sample}_singletons_R1.out.fastq
-grep -A	3 '2:N:' ./QC/step_7/${sample}_singletons.s7.out.fastq | sed '/^--$/d' > ./QC/step_7/${sample}_singletons_R2.out.fastq
-
-cat ./QC/step_8/${sample}_merged.fastq ./QC/step_8/${sample}_R1.unmerged.fastq ./QC/step_7/${sample}_singletons_R1.out.fastq > ./QC/step_8/${sample}_R1.s8.out.fastq;
-cat ./QC/step_8/${sample}_merged.fastq ./QC/step_8/${sample}_R2.unmerged.fastq ./QC/step_7/${sample}_singletons_R2.out.fastq > ./QC/step_8/${sample}_R2.s8.out.fastq;
 
 RUNTIME_8=$(($SECONDS - $T8))
 
-# Step 9: Remove bacterial contaminants reserving viral and ambiguous sequences
-echo
-echo "step 9"
-echo
+echo -e "$RUNTIME_0\t$RUNTIME_1\t$RUNTIME_2\t$RUNTIME_3\t$RUNTIME_4\t$RUNTIME_5\t$RUNTIME_6\t$RUNTIME_7\t$RUNTIME_8" >> contaminant_removal_runtimes.txt
 
-T9=$SECONDS
-
-bbmap.sh \
-	in=./QC/step_8/${sample}_R1.s8.out.fastq \
-	path=$BACPATH \
-	outm=./QC/step_9/${sample}_bacterial.fastq \
-	outu=./QC/step_9/${sample}_viral_amb.fastq \
-	semiperfectmode=t \
-	quickmatch fast \
-	refstats=./QC/step_9/${sample}_refstats.txt \
-	scafstats=./QC/step_9/${sample}_scafstats.txt \
-	ordered=t \
-	ow=t \
-	t=${SLURM_CPUS_PER_TASK}
-
-RUNTIME_9=$(($SECONDS - $T9))
-
-echo -e "$RUNTIME_0\t$RUNTIME_1\t$RUNTIME_2\t$RUNTIME_3\t$RUNTIME_4\t$RUNTIME_5\t$RUNTIME_6\t$RUNTIME_7\t$RUNTIME_8\t$RUNTIME_9" >> ./runtimes/${sample}_contaminant_removal_runtimes.txt
 
 # Add filenames to time table
 
-#ls -1 *_R1.fastq.gz > filenames;
-#sed -i '1ifilenames' filenames;
-#paste filenames contaminant_removal_runtimes.txt >RUNTIMES_contaminant_removal.log;
-
+ls -1 *_R1.fastq.gz > filenames;
+sed -i '1ifilenames' filenames;
+paste filenames contaminant_removal_runtimes.txt >RUNTIMES_contaminant_removal.log

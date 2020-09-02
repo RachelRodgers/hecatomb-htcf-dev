@@ -16,8 +16,7 @@ module load bbtools
 #########################################################################
 ### Important: You may need to set the HOSTPATH. The default is human ###
 #########################################################################
-
-### DESCRIPTION ###
+# DESCRIPTION ###
 # Script to remove non-biological sequences (primers, adapters), low-quality bases, host-sequences and obiovus (100% ID) bacterial sequences from virome sequenced libraries
 # References:
 # Heavy reliance on:
@@ -62,8 +61,8 @@ T0=$SECONDS
 clumpify.sh \
 	in=${read1} \
 	in2=${read2} \
-	out=./clumped/${sample}_R1.fastq.clumped.gz \
-	out2=./clumped/${sample}_R2.fastq.clumped.gz \
+	out=./clumped/${sample}_R1.clumped.fastq.gz \
+	out2=./clumped/${sample}_R2.clumped.fastq.gz \
 	reorder=a \
 	ow=t \
 	t=${SLURM_CPUS_PER_TASK}
@@ -78,8 +77,8 @@ echo
 T1=$SECONDS
 
 bbduk.sh \
-	in=./clumped/${sample}_R1.fastq.clumped.gz \
-	in2=./clumped/${sample}_R2.fastq.clumped.gz \
+	in=./clumped/${sample}_R1.clumped.fastq.gz \
+	in2=./clumped/${sample}_R2.clumped.fastq.gz \
 	ref=$CONPATH/primerB.fa \
 	out=./QC/step_1/${sample}_R1.s1.out.fastq \
 	out2=./QC/step_1/${sample}_R2.s1.out.fastq \

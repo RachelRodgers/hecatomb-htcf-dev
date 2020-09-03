@@ -13,40 +13,48 @@ CONPATH = os.path.join(DBDIR, "contaminants")
 # Data paths
 READDIR = config["Paths"]["Reads"]
 
-# Rename all the R1 and R2 files for consistency
+# If there are .fastq.gz files sitting in /data, rename them for consistency
 
 inputFileList = glob.glob(READDIR + "/*_R[12]*.fastq.gz")
 
-for inputFileName in inputFileList:
-	
-	inputFileName = os.path.basename(inputFileName)
-	index = -1
-	
-	# Look for the R1 designator in the current file name
-	index = inputFileName.find("_R1")
-	
-	# If you can't find it, look for the R2 designator instead
-	if index == -1:
-		index = inputFileName.find("_R2")
-	
-	# If you can't find the R1 or R2 designator something's probably wrong, stop
-	if index == -1:
-		sys.stderr.write("R1 and R2 not found in " + inputFileName)
-		sys.exit()
+# Check that there's stuff in inputFileList
+if (len(inputFileList) != 0):
 
-	# Otherwise, let's build the new name
-	# Extract the sample name + the R1/2 designator, and replace everything that may come after with .fastq.gz
-	newFileName = inputFileName[:index + 3] + ".fastq.gz"
-
-	# Check that the /data/renamed directory exists (I don't want to rename original sequence files!)
-	if not os.path.exists(READDIR + "/renamed"):
-		os.makedirs(READDIR + "/renamed")
-
-	# copy old files to the /data/renamed directory
-	shutil.copy(READDIR + "/" + inputFileName, READDIR + "/renamed/" + inputFileName)
+	for inputFileName in inputFileList:
 	
-	# rename the files within the /data/renamed directory
-	os.rename(READDIR + "/renamed/" + inputFileName, READDIR + "/renamed/" + newFileName)
+		inputFileName = os.path.basename(inputFileName)
+		index = -1
+	
+		# Look for the R1 designator in the current file name
+		index = inputFileName.find("_R1")
+	
+		# If you can't find it, look for the R2 designator instead
+		if index == -1:
+			index = inputFileName.find("_R2")
+	
+		# If you can't find the R1 or R2 designator something's probably wrong, stop
+		if index == -1:
+			sys.stderr.write("R1 and R2 not found in " + inputFileName)
+			sys.exit()
+
+		# Otherwise, let's build the new name
+		# Extract the sample name + the R1/2 designator, and replace everything that may come after with .fastq.gz
+		newFileName = inputFileName[:index + 3] + ".fastq.gz"
+
+		# Check that the /data/renamed directory exists (I don't want to rename original sequence files!)
+		if not os.path.exists(READDIR + "/renamed"):
+			os.makedirs(READDIR + "/renamed")
+
+		# copy old files to the /data/renamed directory
+		shutil.copy(READDIR + "/" + inputFileName, READDIR + "/renamed/" + inputFileName)
+	
+		# rename the files within the /data/renamed directory
+		os.rename(READDIR + "/renamed/" + inputFileName, READDIR + "/renamed/" + newFileName)
+
+		# Once renamed, move the .fastq.gz files from the data directory to the archived directory so snake won't rename them next time
+		if not os.path.exists(READDIR + "/archived"):
+			os.makedirs(READDIR + "/archived")
+		shutil.move(READDIR + "/" + inputFileName, READDIR + "/archived/" + inputFileName)
 
 # Pull sample names from the renamed R1 files and store in list
 

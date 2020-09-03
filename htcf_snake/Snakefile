@@ -1,0 +1,118 @@
+import glob
+import os
+import re
+import sys
+import shutil
+
+configfile: "config.yaml"
+
+# Hecatomb DB paths
+DBDIR = config["Paths"]["Databases"]
+CONPATH = os.path.join(DBDIR, "contaminants")
+
+# Data paths
+READDIR = config["Paths"]["Reads"]
+
+# Rename all the R1 and R2 files for consistency
+
+inputFileList = glob.glob(READDIR + "/*_R[12]*.fastq.gz")
+
+for inputFileName in inputFileList:
+	
+	inputFileName = os.path.basename(inputFileName)
+	index = -1
+	
+	# Look for the R1 designator in the current file name
+	index = inputFileName.find("_R1")
+	
+	# If you can't find it, look for the R2 designator instead
+	if index == -1:
+		index = inputFileName.find("_R2")
+	
+	# If you can't find the R1 or R2 designator something's probably wrong, stop
+	if index == -1:
+		sys.stderr.write("R1 and R2 not found in " + inputFileName)
+		sys.exit()
+
+	# Otherwise, let's build the new name
+	# Extract the sample name + the R1/2 designator, and replace everything that may come after with .fastq.gz
+	newFileName = inputFileName[:index + 3] + ".fastq.gz"
+
+	# Check that the /data/renamed directory exists (I don't want to rename original sequence files!)
+	if not os.path.exists(READDIR + "/renamed"):
+		os.makedirs(READDIR + "/renamed")
+
+	# copy old files to the /data/renamed directory
+	shutil.copy(READDIR + "/" + inputFileName, READDIR + "/renamed/" + inputFileName)
+	
+	# rename the files within the /data/renamed directory
+	os.rename(READDIR + "/renamed/" + inputFileName, READDIR + "/renamed/" + newFileName)
+
+# Pull sample names from the renamed R1 files and store in list
+
+sampleNameList = []
+
+read1FileList = glob.glob(READDIR + "/renamed/*_R1.fastq.gz")
+
+for read1FileName in read1FileList:
+
+	read1FileName = os.path.basename(read1FileName)
+	sampleName = re.sub("_R1.fastq.gz", "", read1FileName)
+	
+	if not sampleName in sampleNameList:
+		sampleNameList.append(sampleName)
+
+SAMPLES, = sampleNameList
+
+PATTERN_R1 = '{sample}_R1'
+PATTERN_R2 = '{sample}_R2'
+
+# Rules 
+
+rule all:
+	input:
+		# step 1 output for now, will update later
+		expand("QC/step_1/{sample}.s1.stats", sample = SAMPLES),
+		
+rule clumpify:
+	input:
+		r1 = os.path.join(READDIR + "/renamed/", PATTERN_R1 + ".fastq.gz"),
+		r2 = os.path.join(READDIR + "/renamed/", PATTERN_R2 + ".fastq.gz")
+	output:
+		r1 = os.path.join("clumped", PATTERN_R1 + ".clumped.fastq.gz"),
+		r2 = os.path.join("clumped", PATTERN_R2 + ".clumped.fastq.gz")
+	shell:
+		"""
+		module load bbtools
+		clumpify.sh \
+			in={input.r1} \
+			in2={input.r2} \
+			out={output.r1} \
+			out2={output.r2} \
+			reorder=a
+			ow=t
+		""" 
+
+rule remove_leftmost_primerB:
+        input:
+                r1 = os.path.join("clumped", PATTERN_R1 + ".clumped.fastq.gz"),
+                r2 = os.path.join("clumped", PATTERN_R2 + ".clumped.fastq.gz"),
+                primers = os.path.join(CONPATH, "primerB.fa")
+        output:
+                r1 = os.path.join("QC", "step_1", PATTERN_R1 + ".s1.out.fastq"),
+                r2 = os.path.join("QC", "step_1", PATTERN_R2 + ".s1.out.fastq"),
+                stats = "QC/step_1/{sample}.s1.stats"
+        shell:
+                """
+                module load bbtools
+                bbduk.sh \
+                        in={input.r1} \
+                        in2={input.r2} \
+                        ref={input.primers} \
+                        out={output.r1} \
+                        out2={output.r2} \
+                        stats={output.stats} \
+                        k=16 hdist=1 mink=11 ktrim=l restrictleft=20 \
+                        removeifeitherbad=f \
+                        trimpolya=10 ordered=t rcomp=f ow=t
+                """

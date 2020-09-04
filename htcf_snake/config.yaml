@@ -2,3 +2,8 @@
 Paths:
   Reads: data
   Databases: /scratch/ref/hecatomb_databases
+
+Patterns:
+  Read1Identifiers: ["_1", "_R1"]
+  Read2Identifiers: ["_2", "_R2"]
+  ReadExtensions: [".fq", ".fastq", ".fastq.gz"]

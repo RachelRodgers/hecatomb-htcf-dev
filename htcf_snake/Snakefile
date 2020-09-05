@@ -28,8 +28,6 @@ for read1FileName in read1FileList:
 	if not sampleName in sampleNameList:
 		sampleNameList.append(sampleName)
 
-print(sampleNameList)
-
 SAMPLES, = sampleNameList
 
 PATTERN_R1 = '{sample}_R1'

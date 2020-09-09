@@ -24,9 +24,9 @@ module load bbtools
         # Step 3: Reformat and prepare for sequence table generation
 
 # Prep output directory
-mkdir -p ./QC/step_9/clustered
-IN=./QC/step_9
-OUT=./QC/step_9/clustered
+mkdir -p ./QC/step_8/clustered
+IN=./QC/step_8
+OUT=./QC/step_8/clustered
 
 read1=$(sed -n ${SLURM_ARRAY_TASK_ID}p lookup.txt)
 sample=$(echo ${read1} | sed s/_R1_001.fastq.gz//g)
@@ -43,7 +43,7 @@ echo
 dedupe.sh \
 	in=$IN/${sample}_viral_amb.fastq \
 	ow=t \
-	out=$OUT/${sample}_R1.s9.deduped.out.fastq \
+	out=$OUT/${sample}_R1.s8.deduped.out.fastq \
 	ac=f \
 	-Xmx64g \
 	t=${SLURM_CPUS_PER_TASK}
@@ -54,7 +54,7 @@ echo "dedupe step 2"
 echo
 
 dedupe.sh \
-	in=$OUT/${sample}_R1.s9.deduped.out.fastq \
+	in=$OUT/${sample}_R1.s8.deduped.out.fastq \
 	ow=t \
 	s=4 \
 	rnc=t \

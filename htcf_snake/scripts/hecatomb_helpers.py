@@ -53,9 +53,15 @@ def rename_files(config):
 	
 			inputFileName = os.path.basename(inputFileName)
 			index = -1
-			pattern = ""
+			pattern  = ""
+			extension = ""
 			readType = ""
 	
+			# Get extension for the current file so the re-named file will have the same extension
+			for extPattern in readExtensions:
+				if inputFileName.endswith(extPattern):
+					extension = extPattern
+
 			# Look for the R1 designator in the current file name
 			for read1Pattern in read1Patterns:
 				index = inputFileName.find(read1Pattern)
@@ -80,16 +86,16 @@ def rename_files(config):
 	
 			# Otherwise, let's build the new name
 			# Extract the sample name + the read designator, and replace everything that may come after with _R[12].fastq.gz
-			newFileName = inputFileName[:index] + "_" + readType + ".fastq.gz"
-	
+			newFileName = inputFileName[:index] + "_" + readType + extension
+
                 	# Check that the /data/renamed directory exists (I don't want to rename original sequence files!)
 			if not os.path.exists(READDIR + "/renamed"):
 				os.makedirs(READDIR + "/renamed")
 	
-                	# copy the original files to the /data/renamed directory
+                	# Copy the original files to the /data/renamed directory
 			shutil.copy(READDIR + "/" + inputFileName, READDIR + "/renamed/" + inputFileName)
 	
-                	# rename the files within the /data/renamed directory
+                	# Rename the files within the /data/renamed directory
 			os.rename(READDIR + "/renamed/" + inputFileName, READDIR + "/renamed/" + newFileName)
 	
                 	# Once renamed, move the original files from the data directory to the archived directory so snake won't rename them again next time

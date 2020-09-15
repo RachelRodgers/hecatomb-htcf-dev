@@ -16,6 +16,14 @@ module load mmseqs2/10-6d92c
 module load pullseq
 
 # Script to query target amino acid sequence database with reduced (seqtab) clustered sequences from merge_seqtable.sh using mmseqs2
+# The end results of this script include a phage sequence table and alignment, non-phage virus seq table and alignment, and an unclassified table.
+# Files include:
+#		aln.m8 (alignment information about taxonomyResult (seqtable against virus uniprot))
+#		taxonomyResult.tsv (contains sequence name, taxID, rank, and taxonomic name); further parsed into:
+#			all_viruses_table.tsv
+#			phage_tax_table.tsv (phage sequence table)
+#			viruses_seqs.fasta (virus (non-phage) sequence table; will be used in pviral_aa_check)
+#			pviral_aa_unclassified_seqs.fasta (unclassified sequence table; will be used in pviral_nt)
 
 # References:
 # Heavy reliance on:
@@ -32,7 +40,7 @@ module load pullseq
 DB=/scratch/ref/hecatomb_databases/virus_uniprot/targetDB
 
 # Set phage lineage file path
-PHAGE=/scratch/ref/hecatomb_databases/phage_taxonomic_lineages.txt
+PHAGE=/scratch/ref/hecatomb_databases/phage_taxonomic_lineages_2020.txt
 
 # Create output directory
 mkdir -p ./results/mmseqs_aa_out/
@@ -45,12 +53,15 @@ echo
 seqkit tab2fx ./results/seqtable.tab2fx -w 5000 -o ./results/seqtable.fasta
 
 # Create Query databases
+# Create a sequence database from the seqtable made from all samples in the study
 echo
 echo "CREATE QUERY DB"
 echo
 mmseqs createdb ./results/seqtable.fasta $OUT/seqtable_queryDB --dont-shuffle 0 --dbtype 0
 
 ## mmseqs2 taxonomy search
+# Query the sequences in seqtable_queryDB (from the seqtable generated from all the samples)
+#		against the virus_unitprotDB to generate taxonomic assignments using LCA
 echo
 echo "MMSEQS TAXONOMY SEARCH"
 echo
@@ -62,6 +73,7 @@ mmseqs taxonomy \
 	--threads ${SLURM_CPUS_PER_TASK} \
 	-a --start-sens 1 --sens-steps 3 -s 7 --search-type 2 --tax-output-mode 1
 
+# Convert alignment DB results (taxonomyResult) into human readable format
 echo
 echo "MMSEQS CONVERTALIS"
 echo
@@ -69,6 +81,7 @@ mmseqs convertalis $OUT/seqtable_queryDB $DB $OUT/taxonomyResult $OUT/aln.m8 \
 	--threads ${SLURM_CPUS_PER_TASK} \
 	--format-output "query,target,pident,alnlen,mismatch,gapopen,qstart,qend,tstart,tend,evalue,bits,qaln,taln"
 
+# Compute the lowest common ancestor from a set of taxa
 echo
 echo "MMSEQS LCA"
 echo
@@ -80,17 +93,17 @@ mmseqs lca \
 	--threads ${SLURM_CPUS_PER_TASK} \
 	--lca-ranks "superkingdom:phylum:class:order:family:genus:species"
 
-# create taxonomy table (tsv)
+# create taxonomy table (tsv) from the lca data
 echo
 echo "CREATE TSV"
 echo
 mmseqs createtsv $OUT/seqtable_queryDB $OUT/lcaDB $OUT/taxonomyResult.tsv --threads ${SLURM_CPUS_PER_TASK}
 
 # create kraken-style report (optional: unhash if interested in this output)
-echo
-echo "CREATE TAXONOMY REPORT"
-echo
-mmseqs taxonomyreport $DB $OUT/lcaDB $OUT/taxonomyResult.report --threads ${SLURM_CPUS_PER_TASK}
+#echo
+#echo "CREATE TAXONOMY REPORT"
+#echo
+#mmseqs taxonomyreport $DB $OUT/lcaDB $OUT/taxonomyResult.report --threads ${SLURM_CPUS_PER_TASK}
 
 ## Adjust taxonomy table and extract viral lineages
 # Extract all (virus + phage) potential viral sequences

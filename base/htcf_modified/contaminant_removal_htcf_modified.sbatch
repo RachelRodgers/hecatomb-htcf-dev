@@ -3,8 +3,8 @@
 # contaminant_removal_htcf_modified.sbatch
 
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=64G
-#SBATCH --array=1-49
+#SBATCH --mem=48G
+#SBATCH --array=1
 #SBATCH -J qv_cnt_rm
 #SBATCH --mail-user=rachel.rodgers
 #SBATCH --mail-type=ALL

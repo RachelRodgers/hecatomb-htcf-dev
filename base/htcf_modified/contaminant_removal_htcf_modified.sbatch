@@ -267,7 +267,6 @@ bbmap.sh \
 	outu=./QC/step_8/${sample}_viral_amb.fastq \
 	semiperfectmode=t \
 	quickmatch fast \
-	#refstats=./QC/step_8/${sample}_refstats.txt \
 	scafstats=./QC/step_8/${sample}_scafstats.txt \
 	ordered=t \
 	-Xmx48g \

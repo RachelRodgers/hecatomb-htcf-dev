@@ -3,7 +3,7 @@
 # cluster_count_htcf_modified.sbatch
 
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=64G
+#SBATCH --mem=48G
 #SBATCH --array=1-49
 #SBATCH -J qv_cnt_rm
 #SBATCH --mail-user=rachel.rodgers
@@ -11,7 +11,7 @@
 
 set -ue
 
-module load bbtools
+module load bbtools/38.26
 
 # Script to dereplicate and count sequences
 # References:
@@ -29,7 +29,7 @@ IN=./QC/step_8
 OUT=./QC/step_8/clustered
 
 read1=$(sed -n ${SLURM_ARRAY_TASK_ID}p lookup.txt)
-sample=$(echo ${read1} | sed s/_R1_001.fastq.gz//g)
+sample=$(echo ${read1} | sed s/_R1.fastq.gz//g)
 
 # Set file names
 #for i in $IN/*_viral_amb.fastq; do
@@ -45,7 +45,7 @@ dedupe.sh \
 	ow=t \
 	out=$OUT/${sample}_R1.s8.deduped.out.fastq \
 	ac=f \
-	-Xmx64g \
+	-Xmx48g \
 	t=${SLURM_CPUS_PER_TASK}
 
 # Step 2: Dereplicate
@@ -61,7 +61,7 @@ dedupe.sh \
 	pbr=t \
 	csf=$OUT/${sample}_stats.txt \
 	out=$OUT/${sample}_best.fasta \
-	-Xmx64g \
+	-Xmx48g \
 	t=${SLURM_CPUS_PER_TASK}
 
 # Step 3: Extract sequences and counts for seqtable (count table)
@@ -76,7 +76,7 @@ reformat.sh \
 	deleteinput=t \
 	fastawrap=0 \
 	ow=t \
-	-Xmx64g
+	-Xmx48g
 
 # Parse and combine stats and contig files
 # Extract sequences

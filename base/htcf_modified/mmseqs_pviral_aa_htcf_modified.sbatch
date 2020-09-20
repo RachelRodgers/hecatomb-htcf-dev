@@ -4,16 +4,16 @@
 
 #SBATCH --constraint=cpu_E52650
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=64G
+#SBATCH --mem=48G
 #SBATCH -J pvrl_aa
 #SBATCH --mail-user=rachel.rodgers
 #SBATCH --mail-type=ALL
 
 set -ue
 
-module load seqkit
+module load seqkit/0.10.1
 module load mmseqs2/10-6d92c
-module load pullseq
+module load pullseq/1.0.2
 
 # Script to query target amino acid sequence database with reduced (seqtab) clustered sequences from merge_seqtable.sh using mmseqs2
 # The end results of this script include a phage sequence table and alignment, non-phage virus seq table and alignment, and an unclassified table.

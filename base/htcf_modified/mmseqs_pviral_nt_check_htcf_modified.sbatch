@@ -4,7 +4,7 @@
 
 #SBATCH --constraint=cpu_E52650
 #SBATCH --cpus-per-task=12
-#SBATCH --mem=64G
+#SBATCH --mem=48G
 #SBATCH -J ck_pvrl_nt
 #SBATCH --mail-user=rachel.rodgers
 #SBATCH --mail-type=ALL
@@ -12,8 +12,8 @@
 set -ue
 
 module load mmseqs2/10-6d92c
-module load pullseq
-module load R
+module load pullseq/1.0.2
+module load r/3.6.3-python-3.6.5-java-11
 
 # Query probable viral hits vs. UniClust30 proteinDB to remove false-positives
         # Uniclust: https://uniclust.mmseqs.com
@@ -35,7 +35,7 @@ module load R
 DB=/scratch/ref/hecatomb_databases/bac_virus_masked/nt.fnaDB
 
 # Set phage lineage file path
-PHAGE=/scratch/ref/hecatomb_databases/phage_taxonomic_lineages.txt
+PHAGE=/scratch/ref/hecatomb_databases/phage_taxonomic_lineages_2020.txt
 
 # Create output directory
 OUT=./results/mmseqs_nt_checked_out
@@ -67,7 +67,7 @@ pullseq	-i ./results/seqtable.fasta -n $OUT/pviral_virus_nt_table.list -l 5000 >
 
 # Create Query databases
 echo
-echo "Create query databases"
+echo "Create query databases from non-phage viral lineages"
 echo
 mmseqs createdb $OUT/pviral_virus_nt_seqs.fasta $OUT/seqtable_queryDB --dbtype 2
 

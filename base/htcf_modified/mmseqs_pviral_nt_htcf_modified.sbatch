@@ -4,7 +4,7 @@
 
 #SBATCH --constraint=cpu_E52650
 #SBATCH --cpus-per-task=12
-#SBATCH --mem=64G
+#SBATCH --mem=48G
 #SBATCH -J pvrl_nt
 #SBATCH --mail-user=rachel.rodgers
 #SBATCH --mail-type=ALL
@@ -12,7 +12,7 @@
 set -ue
 
 module load mmseqs2/10-6d92c
-module load R
+module load r/3.6.3-python-3.6.5-java-11
 
 # Script to query target DNA sequence database with reduced (seqtab) clustered sequences from merge_seqtable.sh using mmseqs2
 

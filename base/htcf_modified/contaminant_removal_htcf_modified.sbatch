@@ -11,7 +11,7 @@
 
 set -ue
 
-module load bbtools
+module load bbtools/38.26
 
 #########################################################################
 ### Important: You may need to set the HOSTPATH. The default is human ###

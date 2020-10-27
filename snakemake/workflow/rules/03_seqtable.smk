@@ -8,22 +8,8 @@ Rob Edwards, Feb 2020
 import os
 import sys
 
-if not config:
-    sys.stderr.write("FATAL: Please define a config file using the --configfile command line option.\n")
-    sys.stderr.write("examples are provided in the Git repo\n")
-    sys.exit()
 
-DBDIR = config['Paths']['Databases']
-
-
-CLUMPED = config['Output']['Clumped']
-QC = config['Output']['QC']
-RESULTS = config['Output']['Results']
-
-SAMPLES, = glob_wildcards(os.path.join(QC, "counts", "{sample}_seqtable.txt"))
-
-
-rule all:
+rule seqtable_first:
     input:
         os.path.join(RESULTS, "seqtable_all.tsv"),
         os.path.join(RESULTS, "seqtable.tab2fx")
@@ -39,8 +25,17 @@ rule merge_seq_table:
         tab2fx = os.path.join(RESULTS, "seqtable.tab2fx")
     params:
         resultsdir = directory(RESULTS),
+    benchmark:
+        "benchmarks/merge_seq_table.txt"
+    resources:
+        mem_mb=20000,
+        cpus=8
+    params:
+        resultsdir = directory(RESULTS),
+    conda:
+        "../envs/R.yaml"
     script:
-        "scripts/seqtable_merge.R"
+        "../scripts/seqtable_merge.R"
 
 
 

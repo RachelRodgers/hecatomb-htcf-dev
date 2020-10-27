@@ -8,48 +8,27 @@ Rob Edwards, Jan 2020
 import os
 import sys
 
-if not config:
-    sys.stderr.write("FATAL: Please define a config file using the --configfile command line option.\n")
-    sys.stderr.write("examples are provided in the Git repo\n")
-    sys.exit()
-
-DBDIR = config['Paths']['Databases']
-
-
-CLUMPED = config['Output']["clumped"]
-QC = config['Output']['QC']
-
-DATADIR = os.path.join(QC, "step_9")
-if not os.path.exists(DATADIR):
-    sys.stderr.write("ERROR: Please run contaminant_removal.snakefile for the first data steps")
-    # we could just add this as a rule ...
-    sys.exit(1)
-
-
-# Step 1: Remove exact duplicates (consider to be PCR artifacts)
-# Step 2: Deduplicate
-# Step 3: Reformat and prepare for sequence table generation
-
-SAMPLES, = glob_wildcards(os.path.join(DATADIR, '{sample}_viral_amb.fastq'))
-
-rule all:
-    input:
-        expand(os.path.join(QC, "counts", "{sample}_seqtable.txt"), sample=SAMPLES)
-
-
 rule remove_exact_dups:
     """
     Step 1: Remove exact duplicates
     """
     input:
-        os.path.join(DATADIR, "{sample}_viral_amb.fastq")
+        os.path.join(QC, "step_9", PATTERN_R1 + ".viral_amb.fastq")
     output:
-        os.path.join(QC, "step_10", "{sample}_R1.s9.deduped.out.fastq")
+        os.path.join(QC, "step_10", PATTERN_R1 + ".s9.deduped.out.fastq")
+    benchmark:
+        "benchmarks/remove_exact_dups_{sample}.txt"
+    resources:
+        mem_mb=20000,
+        cpus=8
+    conda:
+        "../envs/bbmap.yaml"
     shell:
         """
         dedupe.sh in={input} \
                 out={output} \
-                ac=f  ow=t -Xmx128g;
+                ac=f  ow=t \
+                -Xmx{resources.mem_mb}m
         """
 
 rule deduplicate:
@@ -57,15 +36,23 @@ rule deduplicate:
     Step 2: Dereplicate
     """
     input:
-        os.path.join(QC, "step_10", "{sample}_R1.s9.deduped.out.fastq")
+        os.path.join(QC, "step_10", PATTERN_R1 + ".s9.deduped.out.fastq")
     output:
-        fa = os.path.join(QC, "step_11", "{sample}_R1.best.fasta")
+        fa = os.path.join(QC, "step_11", PATTERN_R1 + ".best.fasta"),
         stats = os.path.join(QC, "step_11", "{sample}_stats.txt")
+    benchmark:
+        "benchmarks/deduplicate_{sample}.txt"
+    resources:
+        mem_mb=20000,
+        cpus=8
+    conda:
+        "../envs/bbmap.yaml"
     shell:
         """
         dedupe.sh in={input} \
             csf={output.stats} out={output.fa} \
-            ow=t s=4 rnc=t pbr=t -Xmx128g;
+            ow=t s=4 rnc=t pbr=t \
+            -Xmx{resources.mem_mb}m
         """
 
 rule extract_seq_counts:
@@ -73,15 +60,22 @@ rule extract_seq_counts:
     Step 3: Extract sequences and counts for seqtable (count table)
     """
     input:
-        os.path.join(QC, "step_11", "{sample}_R1.best.fasta")
+        os.path.join(QC, "step_11", PATTERN_R1 + ".best.fasta")
     output:
-        os.path.join(QC, "step_12", "{sample}_reformated.fasta")
+        os.path.join(QC, "step_12", PATTERN_R1 + ".reformated.fasta")
+    benchmark:
+        "benchmarks/extract_seq_counts_{sample}.txt"
+    resources:
+        mem_mb=20000,
+        cpus=8
+    conda:
+        "../envs/bbmap.yaml"
     shell:
         """
         reformat.sh in={input} out={output} \
             deleteinput=t fastawrap=0 \
             ow=t \
-            -Xmx128g;
+            -Xmx{resources.mem_mb}m
         """
 
 rule extract_counts:
@@ -89,7 +83,7 @@ rule extract_counts:
     Parse and combine stats and contig files
     """
     input:
-        os.path.join(QC, "step_12", "{sample}_reformated.fasta") 
+        os.path.join(QC, "step_12", PATTERN_R1 + ".reformated.fasta")
     output:
         os.path.join(QC, "counts", "{sample}_seqs.txt")
     shell:
@@ -102,7 +96,7 @@ rule extract_counts_ids:
     Extract sequence IDs
     """
     input:
-        os.path.join(QC, "step_12", "{sample}_reformated.fasta")
+        os.path.join(QC, "step_12", PATTERN_R1 + ".reformated.fasta")
     output:
         os.path.join(QC, "counts", "{sample}_contig_ids.txt")
     shell:
@@ -118,9 +112,11 @@ rule exract_count_stats:
         os.path.join(QC, "step_11", "{sample}_stats.txt")
     output:
         os.path.join(QC, "counts", "{sample}_counts.txt")
+    params:
+        s = "{sample}"
     shell:
         """
-        cut -f 2 {input} | sed "1s/size/$F/" > {output}
+        cut -f 2 {input} | sed "1s/size/{params.s}/" > {output}
         """
 
 rule create_seq_table:
@@ -128,7 +124,7 @@ rule create_seq_table:
     Create sequence table
     """
     input:
-        seq = os.path.join(QC, "counts", "{sample}_seqs.txt")
+        seq = os.path.join(QC, "counts", "{sample}_seqs.txt"),
         cnt = os.path.join(QC, "counts", "{sample}_counts.txt")
     output:
         os.path.join(QC, "counts", "{sample}_seqtable.txt")
